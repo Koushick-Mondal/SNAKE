@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Snake: AI Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#090e17',
+                        darkCard: '#111827',
+                        lightBg: '#f1f5f9',
+                        lightCard: '#ffffff',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Glassmorphism & Professional Styles */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .scanlines {
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .shake-ui { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .animate-pulse-slow { animation: pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+
+        /* Custom scrollbar for side panel if needed */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-lightBg dark:bg-darkBg text-slate-800 dark:text-slate-100 transition-colors duration-500 min-h-screen flex items-center justify-center p-4 lg:p-8">
+
+    <!-- Main Dashboard Layout (Side-by-Side on Desktop) -->
+    <div class="w-full max-w-6xl flex flex-col lg:flex-row gap-6 lg:gap-8 items-stretch justify-center h-full">
+
+        <!-- SIDE PANEL (UI, Telemetry, Controls) -->
+        <aside class="w-full lg:w-80 flex flex-col gap-4 z-10">
+            <!-- Header -->
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+                <div class="absolute inset-0 bg-emerald-500/5 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h1 class="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">SNAKE.AI</h1>
+                        <p class="text-[10px] text-slate-400 font-mono tracking-widest mt-1">SIMULATION LAB V4.0</p>
+                    </div>
+                    <!-- Theme Toggle -->
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="theme-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Score</span>
+                    <span id="score-display" class="font-mono text-3xl font-bold text-white">0</span>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Best</span>
+                    <span id="highscore-display" class="font-mono text-3xl font-bold text-emerald-400">0</span>
+                </div>
+            </div>
+
+            <!-- Combo & Level -->
+            <div class="glass-panel p-5 rounded-2xl space-y-4">
+                <div>
+                    <div class="flex justify-between items-end mb-1">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Combo Multiplier</span>
+                        <span id="combo-display" class="font-mono text-lg font-bold text-orange-400 leading-none">x1</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="combo-bar" class="h-full bg-orange-500 w-[0%] transition-all duration-100 shadow-[0_0_8px_rgba(249,115,22,0.8)]"></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="flex justify-between items-end mb-1">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Environment Level <span id="level-display" class="text-blue-400 font-bold ml-1">1</span></span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="level-progress" class="h-full bg-blue-500 w-[0%] transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Telemetry HUD -->
+            <div class="glass-panel p-5 rounded-2xl flex-1 border-l-4 border-l-blue-500">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold text-blue-400 tracking-widest uppercase">Live Telemetry</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                        </span>
+                    </div>
+                </div>
+                <div class="font-mono text-[10px] sm:text-xs text-slate-300 space-y-2 opacity-50 transition-opacity duration-300" id="telemetry-data">
+                    <div class="flex justify-between border-b border-slate-700/50 pb-1"><span>COORDINATES:</span> <span id="tel-pos" class="text-blue-300">[0,0]</span></div>
+                    <div class="flex justify-between border-b border-slate-700/50 pb-1"><span>VELOCITY:</span> <span id="tel-vel" class="text-blue-300">[0,0]</span></div>
+                    <div class="flex justify-between border-b border-slate-700/50 pb-1"><span>TOTAL STEPS:</span> <span id="tel-steps" class="text-emerald-300">0</span></div>
+                    <div class="flex justify-between border-b border-slate-700/50 pb-1"><span>EFFICIENCY:</span> <span id="tel-eff" class="text-emerald-300">0.0%</span></div>
+                    
+                    <div class="mt-4 pt-2">
+                        <button id="ai-toggle-btn" class="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded border border-slate-600 flex items-center justify-center gap-2 transition-colors group">
+                            <span class="w-2 h-2 rounded-full bg-slate-500 group-hover:bg-blue-400 transition-colors" id="ai-indicator"></span>
+                            <span id="tel-ai-status" class="font-bold text-slate-400 group-hover:text-blue-400 transition-colors">AI: STANDBY</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Info -->
+            <div class="hidden lg:block glass-panel p-4 rounded-2xl text-[10px] text-slate-400 font-mono text-center">
+                <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-300">WASD</kbd> Move &nbsp;|&nbsp; 
+                <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-300">SHIFT</kbd> Dash &nbsp;|&nbsp;
+                <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-300">P</kbd> AI
+            </div>
+        </aside>
+
+        <!-- GAME PANEL -->
+        <main class="flex-1 flex flex-col items-center justify-center max-w-2xl w-full mx-auto relative">
+            
+            <div class="relative w-full aspect-square bg-[#070b14] rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50 ring-1 ring-white/10">
+                <canvas id="gameCanvas" width="500" height="500" class="w-full h-full block"></canvas>
+                
+                <!-- CRT Scanlines Overlay -->
+                <div class="absolute inset-0 scanlines opacity-60"></div>
+                
+                <!-- START SCREEN -->
+                <div id="start-screen" class="absolute inset-0 bg-[#070b14]/80 backdrop-blur-md flex flex-col items-center justify-center z-10 transition-opacity duration-500">
+                    <div class="absolute w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px] animate-pulse-slow"></div>
+                    <div class="p-8 glass-panel rounded-3xl text-center max-w-[85%] relative z-10 transform transition-transform hover:scale-105 duration-300">
+                        <h2 class="text-3xl font-black mb-2 tracking-tight text-white">SYSTEM READY</h2>
+                        <p class="text-sm text-slate-300 mb-8 font-medium leading-relaxed">Initiate simulation sequence.<br/>Avoid red borders & steel obstacles.</p>
+                        <button id="start-btn" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black tracking-widest uppercase py-4 px-6 rounded-xl transition-all transform active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.8)]">
+                            Initialize
+                        </button>
+                    </div>
+                </div>
+
+                <!-- GAME OVER SCREEN -->
+                <div id="game-over-screen" class="absolute inset-0 bg-[#070b14]/90 backdrop-blur-md flex flex-col items-center justify-center z-10 opacity-0 pointer-events-none transition-opacity duration-500">
+                    <div class="absolute w-72 h-72 bg-red-500/20 rounded-full blur-[100px] animate-pulse-slow"></div>
+                    <div class="p-8 glass-panel rounded-3xl text-center max-w-[90%] relative z-10 border-t-2 border-t-red-500">
+                        <h2 class="text-4xl font-black text-red-500 mb-1 tracking-widest drop-shadow-sm">TERMINATED</h2>
+                        <p class="text-xs text-slate-400 mb-6 uppercase tracking-widest font-semibold">Critical Collision</p>
+                        
+                        <div class="grid grid-cols-2 gap-3 mb-6 w-full">
+                            <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-700/50 text-left">
+                                <span class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Final Score</span>
+                                <div id="final-score" class="font-mono text-2xl font-bold text-white leading-none">0</div>
+                            </div>
+                            <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-700/50 text-left">
+                                <span class="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Max Combo</span>
+                                <div id="final-combo" class="font-mono text-2xl font-bold text-orange-400 leading-none">x1</div>
+                            </div>
+                            <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-700/50 text-left col-span-2 flex justify-between items-center">
+                                <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Time Survived</span>
+                                <div id="final-time" class="font-mono text-lg font-bold text-blue-400">00:00</div>
+                            </div>
+                        </div>
+                        <button id="restart-btn" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black tracking-widest uppercase py-4 px-6 rounded-xl transition-all transform active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)]">
+                            Reboot System
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- PAUSE SCREEN -->
+                <div id="pause-screen" class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-10 opacity-0 pointer-events-none transition-opacity duration-300">
+                    <h2 class="text-4xl font-black text-white tracking-widest animate-pulse">PAUSED</h2>
+                </div>
+            </div>
+
+            <!-- Mobile Controls (Hidden on desktop) -->
+            <div class="mt-6 grid grid-cols-3 gap-3 max-w-[240px] w-full lg:hidden">
+                <div></div>
+                <button class="control-btn glass-panel hover:bg-slate-800 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" data-dir="UP">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+                </button>
+                <div></div>
+                <button class="control-btn glass-panel hover:bg-slate-800 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" data-dir="LEFT">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button class="bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" id="pause-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-300" fill="currentColor" viewBox="0 0 24 24"><path d="M6 5h2v14H6V5zm10 0h2v14h-2V5z"/></svg>
+                </button>
+                <button class="control-btn glass-panel hover:bg-slate-800 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" data-dir="RIGHT">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                </button>
+                <div></div>
+                <button class="control-btn glass-panel hover:bg-slate-800 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" data-dir="DOWN">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                <button class="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/50 rounded-xl aspect-square flex flex-col items-center justify-center shadow-sm active:scale-90 transition-transform" id="dash-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    <span class="text-[9px] font-bold mt-1">DASH</span>
+                </button>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- Audio System (Web Audio API) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(frequency, type, duration, vol = 0.1) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = type;
+            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        const sounds = {
+            eat: () => playTone(880, 'sine', 0.1, 0.15),
+            eatSpecial: () => {
+                playTone(880, 'sine', 0.1, 0.15);
+                setTimeout(() => playTone(1200, 'sine', 0.1, 0.15), 100);
+                setTimeout(() => playTone(1600, 'sine', 0.15, 0.15), 200);
+            },
+            levelUp: () => {
+                playTone(440, 'square', 0.1, 0.1);
+                setTimeout(() => playTone(554, 'square', 0.1, 0.1), 100);
+                setTimeout(() => playTone(659, 'square', 0.2, 0.1), 200);
+            },
+            die: () => {
+                playTone(200, 'sawtooth', 0.3, 0.2);
+                setTimeout(() => playTone(150, 'sawtooth', 0.4, 0.2), 150);
+            },
+            dash: () => playTone(600, 'triangle', 0.05, 0.05),
+            move: () => playTone(400, 'sine', 0.05, 0.02),
+            portal: () => {
+                playTone(300, 'sine', 0.1, 0.1);
+                setTimeout(() => playTone(600, 'sine', 0.2, 0.15), 100);
+            },
+            aiToggle: (on) => {
+                if (on) { playTone(880, 'square', 0.1, 0.05); setTimeout(() => playTone(1760, 'square', 0.2, 0.05), 100); }
+                else { playTone(1760, 'square', 0.1, 0.05); setTimeout(() => playTone(880, 'square', 0.2, 0.05), 100); }
+            }
+        };
+
+        // --- Game Setup ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score-display');
+        const highScoreDisplay = document.getElementById('highscore-display');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const finalComboDisplay = document.getElementById('final-combo');
+        const finalTimeDisplay = document.getElementById('final-time');
+        
+        // Constants
+        const GRID_SIZE = 25; // Size of each cell (500/25 = 20x20 grid)
+        const TILE_COUNT = canvas.width / GRID_SIZE; 
+        
+        // State
+        let snake = [];
+        let food = { x: 15, y: 15 };
+        let specialFood = null;
+        let obstacles = [];
+        let portals = [];
+        let particles = [];
+        let floatingTexts = [];
+        let shockwaves = [];
+        let level = 1;
+        let dx = 0, dy = 0, nextDx = 0, nextDy = 0;
+        let score = 0;
+        let highScore = localStorage.getItem('snakeHighScore') || 0;
+        let speed = 150;
+        let isDashing = false;
+        let combo = 1, maxCombo = 1, comboTime = 0;
+        let shakeDuration = 0, startTime = 0, stepsTaken = 0;
+        let isAiMode = false, justTeleported = false;
+        let gameLoopTimeout, isRunning = false, isPaused = false;
+        let pulseTime = 0;
+        
+        // Force dark mode logic
+        let isDarkMode = true;
+        document.documentElement.classList.add('dark');
+        highScoreDisplay.textContent = highScore;
+
+        // UI Screens
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const pauseScreen = document.getElementById('pause-screen');
+        const telemetryData = document.getElementById('telemetry-data');
+
+        // --- AI Logic (A* Pathfinding) ---
+        function getAiMove() {
+            const head = snake[0];
+            const target = specialFood ? specialFood : food;
+            let queue = [{x: head.x, y: head.y, path: []}];
+            let visited = new Set();
+            visited.add(`${head.x},${head.y}`);
+            
+            for (let i = 0; i < snake.length - 1; i++) visited.add(`${snake[i].x},${snake[i].y}`);
+            for (let obs of obstacles) visited.add(`${obs.x},${obs.y}`);
+
+            const directions = [
+                {x: 0, y: -1, move: 'UP'}, {x: 0, y: 1, move: 'DOWN'},
+                {x: -1, y: 0, move: 'LEFT'}, {x: 1, y: 0, move: 'RIGHT'}
+            ];
+
+            let safeMoves = [];
+
+            while (queue.length > 0 && queue.length < 1000) {
+                let curr = queue.shift();
+                if (curr.x === target.x && curr.y === target.y) return curr.path[0];
+
+                for (let dir of directions) {
+                    let nx = curr.x + dir.x;
+                    let ny = curr.y + dir.y;
+                    
+                    if (portals.length === 2) {
+                        if (nx === portals[0].x && ny === portals[0].y) { nx = portals[1].x; ny = portals[1].y; }
+                        else if (nx === portals[1].x && ny === portals[1].y) { nx = portals[0].x; ny = portals[0].y; }
+                    }
+
+                    const key = `${nx},${ny}`;
+                    if (nx >= 0 && nx < TILE_COUNT && ny >= 0 && ny < TILE_COUNT && !visited.has(key)) {
+                        visited.add(key);
+                        let newPath = [...curr.path, dir.move];
+                        queue.push({x: nx, y: ny, path: newPath});
+                        if (curr.x === head.x && curr.y === head.y) safeMoves.push(dir.move);
+                    }
+                }
+            }
+            if (safeMoves.length > 0) {
+                let currentDirStr = dx === 1 ? 'RIGHT' : dx === -1 ? 'LEFT' : dy === 1 ? 'DOWN' : 'UP';
+                if (safeMoves.includes(currentDirStr)) return currentDirStr;
+                return safeMoves[0]; 
+            }
+            return null;
+        }
+
+        function toggleAiMode() {
+            isAiMode = !isAiMode;
+            sounds.aiToggle(isAiMode);
+            const indicator = document.getElementById('ai-indicator');
+            const aiStatus = document.getElementById('tel-ai-status');
+            if (isAiMode) {
+                indicator.classList.remove('bg-slate-500');
+                indicator.classList.add('bg-blue-400', 'shadow-[0_0_8px_#60a5fa]');
+                aiStatus.textContent = "AI: AUTO-PILOT ON";
+                aiStatus.className = "font-bold text-emerald-400";
+            } else {
+                indicator.classList.add('bg-slate-500');
+                indicator.classList.remove('bg-blue-400', 'shadow-[0_0_8px_#60a5fa]');
+                aiStatus.textContent = "AI: STANDBY";
+                aiStatus.className = "font-bold text-slate-400 group-hover:text-blue-400 transition-colors";
+            }
+        }
+        document.getElementById('ai-toggle-btn').addEventListener('click', toggleAiMode);
+
+        // --- Core Game Functions ---
+        function createFloatingText(x, y, text, color) {
+            floatingTexts.push({
+                x: x * GRID_SIZE + GRID_SIZE / 2, y: y * GRID_SIZE,
+                text: text, color: color, life: 1.0, vy: -0.5
+            });
+        }
+
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: x * GRID_SIZE + GRID_SIZE / 2, y: y * GRID_SIZE + GRID_SIZE / 2,
+                    vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12,
+                    life: 1, color: color
+                });
+            }
+        }
+
+        function loadLevel(newLevel) {
+            level = newLevel;
+            document.getElementById('level-display').textContent = level;
+            
+            if (level > 1) {
+                sounds.levelUp();
+                document.getElementById('level-display').parentElement.parentElement.classList.add('shake-ui');
+                setTimeout(() => document.getElementById('level-display').parentElement.parentElement.classList.remove('shake-ui'), 400);
+            }
+
+            obstacles = []; portals = [];
+
+            if (level === 2) {
+                for(let i=5; i<15; i++) obstacles.push({x: i, y: 10});
+            } else if (level === 3) {
+                for(let i=4; i<16; i++) { obstacles.push({x: i, y: 4}); obstacles.push({x: i, y: 15}); }
+            } else if (level === 4) {
+                for(let i=4; i<16; i++) {
+                    if (i < 8 || i > 11) {
+                        obstacles.push({x: i, y: 5}); obstacles.push({x: i, y: 14});
+                        obstacles.push({x: 5, y: i}); obstacles.push({x: 14, y: i});
+                    }
+                }
+            } else if (level >= 5) {
+                portals = [ {x: 3, y: 3}, {x: 16, y: 16} ];
+                for(let i=8; i<=11; i++) {
+                    obstacles.push({x: i, y: 8}); obstacles.push({x: i, y: 11});
+                    obstacles.push({x: 8, y: i}); obstacles.push({x: 11, y: i});
+                }
+            }
+        }
+
+        function initGame() {
+            snake = [ { x: 10, y: 10 }, { x: 10, y: 11 }, { x: 10, y: 12 }, { x: 10, y: 13 } ];
+            dx = 0; dy = -1; nextDx = 0; nextDy = -1;
+            score = 0; speed = 150; combo = 1; maxCombo = 1; comboTime = 0;
+            isDashing = false; specialFood = null; particles = []; floatingTexts = []; shockwaves = [];
+            shakeDuration = 0; stepsTaken = 0; justTeleported = false;
+            startTime = Date.now();
+            
+            telemetryData.classList.remove('opacity-50');
+            telemetryData.classList.add('opacity-100');
+            
+            loadLevel(1); updateScore(); spawnFood();
+        }
+
+        function startGame() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            startScreen.classList.add('opacity-0', 'pointer-events-none');
+            gameOverScreen.classList.add('opacity-0', 'pointer-events-none');
+            gameOverScreen.classList.remove('opacity-100', 'pointer-events-auto');
+            
+            initGame();
+            isRunning = true; isPaused = false;
+            
+            if (gameLoopTimeout) clearTimeout(gameLoopTimeout);
+            gameLoop();
+            requestAnimationFrame(visualLoop);
+        }
+
+        function pauseGame() {
+            if (!isRunning) return;
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseScreen.classList.remove('opacity-0', 'pointer-events-none');
+                pauseScreen.classList.add('opacity-100');
+            } else {
+                pauseScreen.classList.add('opacity-0', 'pointer-events-none');
+                pauseScreen.classList.remove('opacity-100');
+                gameLoop();
+            }
+        }
+
+        function gameOver() {
+            isRunning = false;
+            sounds.die();
+            shakeDuration = 25; 
+            telemetryData.classList.remove('opacity-100');
+            telemetryData.classList.add('opacity-50');
+            
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('snakeHighScore', highScore);
+                highScoreDisplay.textContent = highScore;
+            }
+            
+            const survivedMs = Date.now() - startTime;
+            const m = Math.floor(survivedMs / 60000);
+            const s = Math.floor((survivedMs % 60000) / 1000);
+            finalTimeDisplay.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            
+            finalScoreDisplay.textContent = score;
+            finalComboDisplay.textContent = `x${maxCombo}`;
+            
+            gameOverScreen.classList.remove('opacity-0', 'pointer-events-none');
+            gameOverScreen.classList.add('opacity-100', 'pointer-events-auto');
+        }
+
+        function spawnFood() {
+            let valid = false;
+            while (!valid) {
+                food = { x: Math.floor(Math.random() * TILE_COUNT), y: Math.floor(Math.random() * TILE_COUNT) };
+                valid = true;
+                for (let part of snake) if (part.x === food.x && part.y === food.y) { valid = false; break; }
+                for (let obs of obstacles) if (obs.x === food.x && obs.y === food.y) { valid = false; break; }
+                for (let port of portals) if (port.x === food.x && port.y === food.y) { valid = false; break; }
+            }
+
+            if (!specialFood && Math.random() < 0.1 && score > 0) {
+                let sValid = false, attempts = 0;
+                while (!sValid && attempts < 50) {
+                    attempts++;
+                    specialFood = { x: Math.floor(Math.random() * TILE_COUNT), y: Math.floor(Math.random() * TILE_COUNT), timer: 60 };
+                    sValid = true;
+                    for (let part of snake) if (part.x === specialFood.x && part.y === specialFood.y) sValid = false;
+                    for (let obs of obstacles) if (obs.x === specialFood.x && obs.y === specialFood.y) sValid = false;
+                    for (let port of portals) if (port.x === specialFood.x && port.y === specialFood.y) sValid = false;
+                    if (specialFood.x === food.x && specialFood.y === food.y) sValid = false;
+                }
+                if (!sValid) specialFood = null;
+            }
+        }
+
+        function updateScore() {
+            scoreDisplay.textContent = score;
+            if (combo > maxCombo) maxCombo = combo;
+            document.getElementById('combo-display').textContent = `x${combo}`;
+            
+            const bar = document.getElementById('combo-bar');
+            if (combo >= 5) bar.className = 'h-full bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)] transition-all';
+            else if (combo >= 3) bar.className = 'h-full bg-orange-500 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.8)] transition-all';
+            else bar.className = 'h-full bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(250,204,21,0.8)] transition-all';
+
+            speed = Math.max(50, 150 - (Math.floor(score / 5) * 8));
+
+            const expectedLevel = Math.floor(score / 10) + 1;
+            document.getElementById('level-progress').style.width = `${(score % 10) / 10 * 100}%`;
+
+            if (expectedLevel > level && expectedLevel <= 10) {
+                loadLevel(expectedLevel); spawnFood();
+            }
+        }
+
+        function update() {
+            if (!isRunning || isPaused) return;
+
+            if (isAiMode) {
+                const aiDir = getAiMove();
+                if (aiDir) handleInput(aiDir);
+            }
+
+            dx = nextDx; dy = nextDy;
+            let head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            stepsTaken++;
+
+            let teleportedThisTurn = false;
+            if (portals.length === 2 && !justTeleported) {
+                if (head.x === portals[0].x && head.y === portals[0].y) {
+                    head.x = portals[1].x; head.y = portals[1].y;
+                    teleportedThisTurn = true; sounds.portal();
+                    createParticles(portals[1].x, portals[1].y, '#c084fc');
+                    shockwaves.push({x: portals[1].x * GRID_SIZE, y: portals[1].y * GRID_SIZE, radius: 0, life: 1});
+                } else if (head.x === portals[1].x && head.y === portals[1].y) {
+                    head.x = portals[0].x; head.y = portals[0].y;
+                    teleportedThisTurn = true; sounds.portal();
+                    createParticles(portals[0].x, portals[0].y, '#c084fc');
+                    shockwaves.push({x: portals[0].x * GRID_SIZE, y: portals[0].y * GRID_SIZE, radius: 0, life: 1});
+                }
+            }
+            justTeleported = teleportedThisTurn;
+
+            // Check Collision
+            if (head.x < 0 || head.x >= TILE_COUNT || head.y < 0 || head.y >= TILE_COUNT) return gameOver();
+            for (let i = 0; i < snake.length; i++) if (head.x === snake[i].x && head.y === snake[i].y) return gameOver();
+            for (let obs of obstacles) if (head.x === obs.x && head.y === obs.y) return gameOver();
+
+            snake.unshift(head);
+
+            if (specialFood) {
+                if (head.x === specialFood.x && head.y === specialFood.y) {
+                    let pts = 5 * combo;
+                    score += pts; combo = Math.min(5, combo + 1); comboTime = 100; updateScore();
+                    sounds.eatSpecial(); shakeDuration = 8;
+                    shockwaves.push({x: specialFood.x * GRID_SIZE + GRID_SIZE/2, y: specialFood.y * GRID_SIZE + GRID_SIZE/2, radius: 0, life: 1});
+                    createParticles(specialFood.x, specialFood.y, '#eab308');
+                    createFloatingText(specialFood.x, specialFood.y, `+${pts}`, '#eab308');
+                    specialFood = null;
+                } else {
+                    specialFood.timer--; if (specialFood.timer <= 0) specialFood = null;
+                }
+            }
+
+            if (head.x === food.x && head.y === food.y) {
+                let pts = 1 * combo;
+                score += pts; combo = Math.min(5, combo + 1); comboTime = 100; updateScore();
+                sounds.eat();
+                shockwaves.push({x: food.x * GRID_SIZE + GRID_SIZE/2, y: food.y * GRID_SIZE + GRID_SIZE/2, radius: 0, life: 1});
+                createParticles(food.x, food.y, '#10b981');
+                createFloatingText(food.x, food.y, `+${pts}`, '#10b981');
+                spawnFood();
+            } else {
+                snake.pop();
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.vy += 0.2; p.vx *= 0.95; p.vy *= 0.95; // Gravity + Friction
+                p.x += p.vx; p.y += p.vy; p.life -= 0.03;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+            
+            if (isDashing && comboTime > 0) comboTime -= 1;
+            
+            // UI Update
+            document.getElementById('tel-pos').textContent = `[${head.x},${head.y}]`;
+            document.getElementById('tel-vel').textContent = `[${dx},${dy}]`;
+            document.getElementById('tel-steps').textContent = stepsTaken;
+            document.getElementById('tel-eff').textContent = stepsTaken > 0 ? ((score / stepsTaken) * 100).toFixed(1) + '%' : '0.0%';
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            if (shakeDuration > 0) {
+                const mag = (shakeDuration / 25) * 8;
+                ctx.translate((Math.random() - 0.5) * mag, (Math.random() - 0.5) * mag);
+            }
+
+            // Animated Background Grid
+            const driftX = Math.sin(pulseTime * 0.5) * 10;
+            const driftY = Math.cos(pulseTime * 0.3) * 10;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for(let i=-1; i<=TILE_COUNT+1; i++) {
+                ctx.moveTo(i * GRID_SIZE + (driftX * 0.1), -20); ctx.lineTo(i * GRID_SIZE + (driftX * 0.1), canvas.height + 20);
+                ctx.moveTo(-20, i * GRID_SIZE + (driftY * 0.1)); ctx.lineTo(canvas.width + 20, i * GRID_SIZE + (driftY * 0.1));
+            }
+            ctx.stroke();
+
+            // SIDES/WALLS CLEARLY MARKED (Sci-Fi Glowing Border)
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ef4444'; // Red danger walls
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+            
+            // High-Tech Corner Brackets for the walls
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#f87171';
+            const cl = 25; 
+            ctx.beginPath();
+            ctx.moveTo(2, cl); ctx.lineTo(2, 2); ctx.lineTo(cl, 2); // Top Left
+            ctx.moveTo(canvas.width - cl, 2); ctx.lineTo(canvas.width - 2, 2); ctx.lineTo(canvas.width - 2, cl); // Top Right
+            ctx.moveTo(canvas.width - 2, canvas.height - cl); ctx.lineTo(canvas.width - 2, canvas.height - 2); ctx.lineTo(canvas.width - cl, canvas.height - 2); // Bot Right
+            ctx.moveTo(cl, canvas.height - 2); ctx.lineTo(2, canvas.height - 2); ctx.lineTo(2, canvas.height - cl); // Bot Left
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Mathematical Shockwaves
+            ctx.lineWidth = 2;
+            for (let i = shockwaves.length - 1; i >= 0; i--) {
+                let sw = shockwaves[i];
+                ctx.strokeStyle = `rgba(52, 211, 153, ${sw.life * 0.5})`;
+                ctx.beginPath(); ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2); ctx.stroke();
+                sw.radius += 10; sw.life -= 0.05;
+                if (sw.life <= 0) shockwaves.splice(i, 1);
+            }
+
+            // Obstacles
+            ctx.shadowColor = 'transparent';
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            for (let obs of obstacles) {
+                ctx.beginPath();
+                ctx.roundRect(obs.x * GRID_SIZE + 2, obs.y * GRID_SIZE + 2, GRID_SIZE - 4, GRID_SIZE - 4, 4);
+                ctx.fill(); ctx.stroke();
+            }
+
+            // Portals
+            if (portals.length === 2) {
+                const pPulse = Math.sin(pulseTime * 4) * 3;
+                ctx.shadowBlur = 20; ctx.shadowColor = '#c084fc';
+                for (let port of portals) {
+                    const cx = port.x * GRID_SIZE + GRID_SIZE/2;
+                    const cy = port.y * GRID_SIZE + GRID_SIZE/2;
+                    ctx.save(); ctx.translate(cx, cy); ctx.rotate(pulseTime * 2);
+                    ctx.fillStyle = '#1e1b4b';
+                    ctx.beginPath(); ctx.arc(0, 0, GRID_SIZE/2 - 2, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = '#c084fc'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.ellipse(0, 0, GRID_SIZE/2 + pPulse, GRID_SIZE/3, 0, 0, Math.PI * 2); ctx.stroke();
+                    ctx.beginPath(); ctx.ellipse(0, 0, GRID_SIZE/3, GRID_SIZE/2 + pPulse, 0, 0, Math.PI * 2); ctx.stroke();
+                    ctx.restore();
+                }
+            }
+
+            // Particles
+            ctx.shadowBlur = 12;
+            for (let p of particles) {
+                ctx.fillStyle = p.color; ctx.shadowColor = p.color;
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.1, 4 * p.life), 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Food
+            ctx.shadowBlur = 15; ctx.fillStyle = '#10b981'; ctx.shadowColor = '#10b981';
+            const fSize = GRID_SIZE - 8 + (Math.sin(pulseTime * 3) * 3);
+            ctx.beginPath(); ctx.arc(food.x * GRID_SIZE + GRID_SIZE/2, food.y * GRID_SIZE + GRID_SIZE/2, fSize/2, 0, Math.PI * 2); ctx.fill();
+
+            // Special Food
+            if (specialFood) {
+                ctx.fillStyle = '#eab308'; ctx.shadowColor = '#eab308';
+                const sSize = (GRID_SIZE - 4 + (Math.sin(pulseTime * 8) * 4)) * Math.max(0, specialFood.timer / 60);
+                if (sSize > 0) {
+                    const cx = specialFood.x * GRID_SIZE + GRID_SIZE/2, cy = specialFood.y * GRID_SIZE + GRID_SIZE/2;
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy - sSize/2); ctx.lineTo(cx + sSize/4, cy - sSize/4); ctx.lineTo(cx + sSize/2, cy); ctx.lineTo(cx + sSize/4, cy + sSize/4);
+                    ctx.lineTo(cx, cy + sSize/2); ctx.lineTo(cx - sSize/4, cy + sSize/4); ctx.lineTo(cx - sSize/2, cy); ctx.lineTo(cx - sSize/4, cy - sSize/4);
+                    ctx.fill();
+                }
+            }
+
+            // FLAWLESS ROUNDED SNAKE
+            ctx.shadowColor = '#10b981';
+            ctx.shadowBlur = isDashing ? 25 : 12;
+            
+            if (snake.length > 0) {
+                // Draw connecting segments and precise circles at EVERY joint for flawless 90-degree curves
+                for (let i = snake.length - 1; i >= 0; i--) {
+                    const cx = snake[i].x * GRID_SIZE + GRID_SIZE/2;
+                    const cy = snake[i].y * GRID_SIZE + GRID_SIZE/2;
+                    
+                    // Tapering physics
+                    let thicknessRatio = Math.pow(1 - (i / snake.length), 0.5);
+                    let maxThickness = isDashing ? GRID_SIZE - 10 : GRID_SIZE - 6;
+                    let thick = Math.max(4, maxThickness * thicknessRatio);
+                    
+                    const alpha = 0.5 + (0.5 * thicknessRatio);
+                    ctx.fillStyle = isDashing ? `rgba(134, 239, 172, ${alpha})` : `rgba(16, 185, 129, ${alpha})`;
+                    ctx.strokeStyle = ctx.fillStyle;
+
+                    // Perfect Circle Joint at this segment's exact center
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, thick/2, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // Connect to the next segment towards the head
+                    if (i > 0) {
+                        const nextX = snake[i-1].x * GRID_SIZE + GRID_SIZE/2;
+                        const nextY = snake[i-1].y * GRID_SIZE + GRID_SIZE/2;
+                        
+                        ctx.lineWidth = thick;
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy);
+                        ctx.lineTo(nextX, nextY);
+                        ctx.stroke();
+                    }
+                }
+
+                // Cybernetic Head Details
+                const head = snake[0];
+                const cx = head.x * GRID_SIZE + GRID_SIZE/2;
+                const cy = head.y * GRID_SIZE + GRID_SIZE/2;
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#0f172a'; // Eye color
+                
+                let eye1x, eye1y, eye2x, eye2y;
+                const eOff = 5;
+                const dirX = dx || (snake.length > 1 ? head.x - snake[1].x : 0);
+                const dirY = dy || (snake.length > 1 ? head.y - snake[1].y : -1);
+                
+                if (dirX === 1) { eye1x = cx + 4; eye1y = cy - eOff; eye2x = cx + 4; eye2y = cy + eOff; }
+                else if (dirX === -1) { eye1x = cx - 4; eye1y = cy - eOff; eye2x = cx - 4; eye2y = cy + eOff; }
+                else if (dirY === 1) { eye1x = cx - eOff; eye1y = cy + 4; eye2x = cx + eOff; eye2y = cy + 4; }
+                else { eye1x = cx - eOff; eye1y = cy - 4; eye2x = cx + eOff; eye2y = cy - 4; }
+
+                ctx.beginPath(); ctx.arc(eye1x, eye1y, isDashing ? 1.5 : 2.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(eye2x, eye2y, isDashing ? 1.5 : 2.5, 0, Math.PI*2); ctx.fill();
+            }
+
+            // Floating Texts
+            ctx.shadowBlur = 0; ctx.font = 'bold 18px "JetBrains Mono", monospace'; ctx.textAlign = 'center';
+            for (let ft of floatingTexts) {
+                ctx.fillStyle = ft.color; ctx.globalAlpha = ft.life;
+                ctx.fillText(ft.text, ft.x, ft.y);
+            }
+            ctx.globalAlpha = 1.0;
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            if (!isRunning || isPaused) return;
+            update(); draw();
+            const currentDelay = isDashing ? speed * 0.45 : speed;
+            gameLoopTimeout = setTimeout(gameLoop, currentDelay);
+        }
+
+        function visualLoop(time) {
+            pulseTime = time * 0.005;
+            if (isRunning && !isPaused) {
+                if (shakeDuration > 0) shakeDuration--;
+                if (comboTime > 0 && combo > 1) {
+                    comboTime -= 0.4;
+                    if (comboTime <= 0) { combo = 1; updateScore(); }
+                    document.getElementById('combo-bar').style.width = `${comboTime}%`;
+                } else if (combo === 1) document.getElementById('combo-bar').style.width = `0%`;
+
+                for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                    let ft = floatingTexts[i]; ft.y += ft.vy; ft.life -= 0.02;
+                    if (ft.life <= 0) floatingTexts.splice(i, 1);
+                }
+                draw();
+            }
+            requestAnimationFrame(visualLoop);
+        }
+
+        // --- Controls ---
+        function handleInput(direction) {
+            if (!isRunning) return;
+            if (direction === 'UP' && dy !== 1) { nextDx = 0; nextDy = -1; }
+            if (direction === 'DOWN' && dy !== -1) { nextDx = 0; nextDy = 1; }
+            if (direction === 'LEFT' && dx !== 1) { nextDx = -1; nextDy = 0; }
+            if (direction === 'RIGHT' && dx !== -1) { nextDx = 1; nextDy = 0; }
+            if (nextDx !== dx || nextDy !== dy) sounds.move();
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd', 'Shift', 'p'].includes(e.key)) e.preventDefault();
+            if (e.key === ' ') return pauseGame();
+            if (e.key.toLowerCase() === 'p') return toggleAiMode();
+            if (e.key === 'Shift' && !isDashing && isRunning && !isAiMode) { isDashing = true; sounds.dash(); }
+
+            switch(e.key.toLowerCase()) {
+                case 'arrowup': case 'w': handleInput('UP'); break;
+                case 'arrowdown': case 's': handleInput('DOWN'); break;
+                case 'arrowleft': case 'a': handleInput('LEFT'); break;
+                case 'arrowright': case 'd': handleInput('RIGHT'); break;
+            }
+        });
+        window.addEventListener('keyup', (e) => { if (e.key === 'Shift') isDashing = false; });
+
+        // Touch Controls
+        document.querySelectorAll('.control-btn').forEach(btn => {
+            btn.addEventListener('pointerdown', (e) => { e.preventDefault(); handleInput(btn.dataset.dir); });
+        });
+        const dashBtn = document.getElementById('dash-btn');
+        dashBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            if (!isDashing && isRunning && !isAiMode) { isDashing = true; sounds.dash(); dashBtn.classList.add('bg-orange-500/40'); }
+        });
+        dashBtn.addEventListener('pointerup', (e) => { e.preventDefault(); isDashing = false; dashBtn.classList.remove('bg-orange-500/40'); });
+        dashBtn.addEventListener('pointerleave', (e) => { isDashing = false; dashBtn.classList.remove('bg-orange-500/40'); });
+
+        document.getElementById('pause-btn').addEventListener('click', pauseGame);
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', startGame);
+
+        // Initial setup
+        draw();
+    </script>
+</body>
+</html>
