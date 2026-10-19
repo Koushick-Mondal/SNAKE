@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Snake: AI Simulation</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2851304313695257"
+     crossorigin="anonymous"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -84,7 +86,7 @@
                     <!-- Theme Toggle -->
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="theme-toggle" class="sr-only peer" checked>
-                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:abso[...]
                     </label>
                 </div>
             </div>
@@ -141,7 +143,7 @@
                     <div class="flex justify-between border-b border-slate-700/50 pb-1"><span>EFFICIENCY:</span> <span id="tel-eff" class="text-emerald-300">0.0%</span></div>
                     
                     <div class="mt-4 pt-2">
-                        <button id="ai-toggle-btn" class="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded border border-slate-600 flex items-center justify-center gap-2 transition-colors group">
+                        <button id="ai-toggle-btn" class="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded border border-slate-600 flex items-center justify-center gap-2 transition-colors grou[...]
                             <span class="w-2 h-2 rounded-full bg-slate-500 group-hover:bg-blue-400 transition-colors" id="ai-indicator"></span>
                             <span id="tel-ai-status" class="font-bold text-slate-400 group-hover:text-blue-400 transition-colors">AI: STANDBY</span>
                         </button>
@@ -172,14 +174,14 @@
                     <div class="p-8 glass-panel rounded-3xl text-center max-w-[85%] relative z-10 transform transition-transform hover:scale-105 duration-300">
                         <h2 class="text-3xl font-black mb-2 tracking-tight text-white">SYSTEM READY</h2>
                         <p class="text-sm text-slate-300 mb-8 font-medium leading-relaxed">Initiate simulation sequence.<br/>Avoid red borders & steel obstacles.</p>
-                        <button id="start-btn" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black tracking-widest uppercase py-4 px-6 rounded-xl transition-all transform active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.8)]">
+                        <button id="start-btn" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black tracking-widest uppercase py-4 px-6 rounded-xl transition-all transform [...]
                             Initialize
                         </button>
                     </div>
                 </div>
 
                 <!-- GAME OVER SCREEN -->
-                <div id="game-over-screen" class="absolute inset-0 bg-[#070b14]/90 backdrop-blur-md flex flex-col items-center justify-center z-10 opacity-0 pointer-events-none transition-opacity duration-500">
+                <div id="game-over-screen" class="absolute inset-0 bg-[#070b14]/90 backdrop-blur-md flex flex-col items-center justify-center z-10 opacity-0 pointer-events-none transition-opacity[...]
                     <div class="absolute w-72 h-72 bg-red-500/20 rounded-full blur-[100px] animate-pulse-slow"></div>
                     <div class="p-8 glass-panel rounded-3xl text-center max-w-[90%] relative z-10 border-t-2 border-t-red-500">
                         <h2 class="text-4xl font-black text-red-500 mb-1 tracking-widest drop-shadow-sm">TERMINATED</h2>
@@ -199,14 +201,14 @@
                                 <div id="final-time" class="font-mono text-lg font-bold text-blue-400">00:00</div>
                             </div>
                         </div>
-                        <button id="restart-btn" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black tracking-widest uppercase py-4 px-6 rounded-xl transition-all transform active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)]">
+                        <button id="restart-btn" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black tracking-widest uppercase py-4 px-6 rounded-xl transition-all transfor[...]
                             Reboot System
                         </button>
                     </div>
                 </div>
                 
                 <!-- PAUSE SCREEN -->
-                <div id="pause-screen" class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-10 opacity-0 pointer-events-none transition-opacity duration-300">
+                <div id="pause-screen" class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-10 opacity-0 pointer-events-none transition-opacity duration-300[...]
                     <h2 class="text-4xl font-black text-white tracking-widest animate-pulse">PAUSED</h2>
                 </div>
             </div>
@@ -215,24 +217,24 @@
             <div class="mt-6 grid grid-cols-3 gap-3 max-w-[240px] w-full lg:hidden">
                 <div></div>
                 <button class="control-btn glass-panel hover:bg-slate-800 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" data-dir="UP">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="roun[...]
                 </button>
                 <div></div>
-                <button class="control-btn glass-panel hover:bg-slate-800 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" data-dir="LEFT">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                <button class="control-btn glass-panel hover:bg-slate-800 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" data-dir="LEFT"[...]
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="roun[...]
                 </button>
-                <button class="bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" id="pause-btn">
+                <button class="bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" id[...]
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-300" fill="currentColor" viewBox="0 0 24 24"><path d="M6 5h2v14H6V5zm10 0h2v14h-2V5z"/></svg>
                 </button>
-                <button class="control-btn glass-panel hover:bg-slate-800 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" data-dir="RIGHT">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                <button class="control-btn glass-panel hover:bg-slate-800 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" data-dir="RIGHT[...]
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="roun[...]
                 </button>
                 <div></div>
-                <button class="control-btn glass-panel hover:bg-slate-800 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" data-dir="DOWN">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                <button class="control-btn glass-panel hover:bg-slate-800 rounded-xl aspect-square flex items-center justify-center shadow-sm active:scale-90 transition-transform" data-dir="DOWN"[...]
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="roun[...]
                 </button>
-                <button class="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/50 rounded-xl aspect-square flex flex-col items-center justify-center shadow-sm active:scale-90 transition-transform" id="dash-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                <button class="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/50 rounded-xl aspect-square flex flex-col items-center justify-center shadow-sm act[...]
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width[...]
                     <span class="text-[9px] font-bold mt-1">DASH</span>
                 </button>
             </div>
@@ -686,8 +688,7 @@
                 let sw = shockwaves[i];
                 ctx.strokeStyle = `rgba(52, 211, 153, ${sw.life * 0.5})`;
                 ctx.beginPath(); ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2); ctx.stroke();
-                sw.radius += 10; sw.life -= 0.05;
-                if (sw.life <= 0) shockwaves.splice(i, 1);
+                sw.radius += 10; sw.health -= 0.05; if (sw.health <= 0) shockwaves.splice(i, 1);
             }
 
             // Obstacles
