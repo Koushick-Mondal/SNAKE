@@ -402,7 +402,8 @@
                 aiStatus.className = "font-bold text-slate-400 group-hover:text-blue-400 transition-colors";
             }
         }
-        document.getElementById('ai-toggle-btn').addEventListener('click', toggleAiMode);
+        const aiToggleBtn = document.getElementById('ai-toggle-btn');
+        if (aiToggleBtn) aiToggleBtn.addEventListener('click', toggleAiMode);
 
         // --- Core Game Functions ---
         function createFloatingText(x, y, text, color) {
@@ -688,7 +689,7 @@
                 let sw = shockwaves[i];
                 ctx.strokeStyle = `rgba(52, 211, 153, ${sw.life * 0.5})`;
                 ctx.beginPath(); ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2); ctx.stroke();
-                sw.radius += 10; sw.health -= 0.05; if (sw.health <= 0) shockwaves.splice(i, 1);
+                sw.radius += 10; sw.life -= 0.05; if (sw.life <= 0) shockwaves.splice(i, 1);
             }
 
             // Obstacles
@@ -871,16 +872,21 @@
             btn.addEventListener('pointerdown', (e) => { e.preventDefault(); handleInput(btn.dataset.dir); });
         });
         const dashBtn = document.getElementById('dash-btn');
-        dashBtn.addEventListener('pointerdown', (e) => {
-            e.preventDefault();
-            if (!isDashing && isRunning && !isAiMode) { isDashing = true; sounds.dash(); dashBtn.classList.add('bg-orange-500/40'); }
-        });
-        dashBtn.addEventListener('pointerup', (e) => { e.preventDefault(); isDashing = false; dashBtn.classList.remove('bg-orange-500/40'); });
-        dashBtn.addEventListener('pointerleave', (e) => { isDashing = false; dashBtn.classList.remove('bg-orange-500/40'); });
+        if (dashBtn) {
+            dashBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                if (!isDashing && isRunning && !isAiMode) { isDashing = true; sounds.dash(); dashBtn.classList.add('bg-orange-500/40'); }
+            });
+            dashBtn.addEventListener('pointerup', (e) => { e.preventDefault(); isDashing = false; dashBtn.classList.remove('bg-orange-500/40'); });
+            dashBtn.addEventListener('pointerleave', (e) => { isDashing = false; dashBtn.classList.remove('bg-orange-500/40'); });
+        }
 
-        document.getElementById('pause-btn').addEventListener('click', pauseGame);
-        document.getElementById('start-btn').addEventListener('click', startGame);
-        document.getElementById('restart-btn').addEventListener('click', startGame);
+        const pauseBtn = document.getElementById('pause-btn');
+        if (pauseBtn) pauseBtn.addEventListener('click', pauseGame);
+        const startBtn = document.getElementById('start-btn');
+        if (startBtn) startBtn.addEventListener('click', startGame);
+        const restartBtn = document.getElementById('restart-btn');
+        if (restartBtn) restartBtn.addEventListener('click', startGame);
 
         // Initial setup
         draw();
