@@ -86,7 +86,7 @@
                     <!-- Theme Toggle -->
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="theme-toggle" class="sr-only peer" checked>
-                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:abso[...]
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content=[''] after:abso[...]
                     </label>
                 </div>
             </div>
@@ -698,9 +698,28 @@
             ctx.strokeStyle = '#334155';
             ctx.lineWidth = 2;
             for (let obs of obstacles) {
-                ctx.beginPath();
-                ctx.roundRect(obs.x * GRID_SIZE + 2, obs.y * GRID_SIZE + 2, GRID_SIZE - 4, GRID_SIZE - 4, 4);
-                ctx.fill(); ctx.stroke();
+                // Draw rounded rectangle fallback (use ctx.roundRect if available, otherwise use arcTo)
+                const ox = obs.x * GRID_SIZE + 2;
+                const oy = obs.y * GRID_SIZE + 2;
+                const ow = GRID_SIZE - 4;
+                const oh = GRID_SIZE - 4;
+                const oradius = 4;
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.beginPath();
+                    ctx.roundRect(ox, oy, ow, oh, oradius);
+                } else {
+                    // fallback rounded rect using arcTo
+                    const r = Math.min(oradius, ow / 2, oh / 2);
+                    ctx.beginPath();
+                    ctx.moveTo(ox + r, oy);
+                    ctx.arcTo(ox + ow, oy, ox + ow, oy + oh, r);
+                    ctx.arcTo(ox + ow, oy + oh, ox, oy + oh, r);
+                    ctx.arcTo(ox, oy + oh, ox, oy, r);
+                    ctx.arcTo(ox, oy, ox + ow, oy, r);
+                    ctx.closePath();
+                }
+                ctx.fill();
+                ctx.stroke();
             }
 
             // Portals
